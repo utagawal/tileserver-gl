@@ -502,3 +502,48 @@ export async function fetchTileData(source, sourceType, z, x, y) {
     });
   }
 }
+
+/**
+ * A simple LRU cache implementation.
+ * @class
+ */
+export class LRUCache {
+  /**
+   * Creates an instance of LRUCache.
+   * @param {number} maxSize - The maximum size of the cache.
+   */
+  constructor(maxSize) {
+    this.maxSize = maxSize;
+    this.cache = new Map();
+  }
+
+  /**
+   * Retrieves an item from the cache.
+   * @param {string} key - The key of the item to retrieve.
+   * @returns {any} The cached item or undefined if not found.
+   */
+  get(key) {
+    const item = this.cache.get(key);
+    if (item) {
+      // Move to the end to mark as recently used
+      this.cache.delete(key);
+      this.cache.set(key, item);
+    }
+    return item;
+  }
+
+  /**
+   * Adds or updates an item in the cache.
+   * @param {string} key - The key of the item to add or update.
+   * @param {any} value - The item to cache.
+   */
+  set(key, value) {
+    if (this.cache.has(key)) {
+      this.cache.delete(key);
+    } else if (this.cache.size === this.maxSize) {
+      // Evict the least recently used item
+      this.cache.delete(this.cache.keys().next().value);
+    }
+    this.cache.set(key, value);
+  }
+}
