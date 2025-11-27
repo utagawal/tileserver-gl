@@ -459,26 +459,23 @@ export async function getPMtilesInfo(pmtiles, inputFile, maxRetries = 3) {
  * @returns {Promise<object>} - A promise that resolves to an object with data (Buffer or undefined) and header (content-type).
  */
 export async function getPMtilesTile(pmtiles, z, x, y, maxRetries = 3) {
-  const header = await pmtiles.getHeader();
-  const tileType = getPmtilesTileType(header.tileType);
-
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
-      let zxyTile = await pmtiles.getZxy(z, x, y);
+      const zxyTile = await pmtiles.getZxy(z, x, y);
 
-      if (zxyTile && zxyTile.data) {
-        zxyTile = Buffer.from(zxyTile.data);
-      } else {
-        zxyTile = undefined;
+      if (!zxyTile || !zxyTile.data) {
+        return null;
       }
 
-      return { data: zxyTile, header: tileType.header };
+      const header = await pmtiles.getHeader();
+      const tileType = getPmtilesTileType(header.tileType);
+      const data = Buffer.from(zxyTile.data);
+
+      return { data, header: tileType.header };
     } catch (error) {
-      if (
-        error.message &&
-        error.message.includes('429') &&
-        attempt < maxRetries - 1
-      ) {
+      const errorMessage = error.message || 'Unknown error';
+
+      if (errorMessage.includes('429') && attempt < maxRetries - 1) {
         const delay = Math.pow(2, attempt) * 1000;
         console.warn(
           `Rate limited for tile ${z}/${x}/${y}, retrying in ${delay}ms (attempt ${attempt + 1}/${maxRetries})`,
@@ -487,19 +484,23 @@ export async function getPMtilesTile(pmtiles, z, x, y, maxRetries = 3) {
         continue;
       }
 
-      if (error.message && error.message.includes('Bad response code:')) {
-        console.error(`HTTP error for tile ${z}/${x}/${y}: ${error.message}`);
-        return { data: undefined, header: tileType.header };
+      if (errorMessage.includes('Bad response code:')) {
+        console.error(`HTTP error for tile ${z}/${x}/${y}: ${errorMessage}`);
+        return null;
       }
 
-      throw error;
+      console.error(
+        `Failed to fetch tile ${z}/${x}/${y} (attempt ${
+          attempt + 1
+        }/${maxRetries}): ${errorMessage}`,
+      );
     }
   }
 
   console.error(
     `Failed to fetch tile ${z}/${x}/${y} after ${maxRetries} attempts`,
   );
-  return { data: undefined, header: tileType.header };
+  return null;
 }
 
 /**

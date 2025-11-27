@@ -482,14 +482,9 @@ export function isMBTilesProtocol(string) {
  */
 export async function fetchTileData(source, sourceType, z, x, y) {
   if (sourceType === 'pmtiles') {
-    try {
-      const tileinfo = await getPMtilesTile(source, z, x, y);
-      if (!tileinfo?.data) return null;
-      return { data: tileinfo.data, headers: tileinfo.header };
-    } catch (error) {
-      console.error('Error fetching PMTiles tile:', error);
-      return null;
-    }
+    const tileinfo = await getPMtilesTile(source, z, x, y);
+    if (!tileinfo) return null;
+    return { data: tileinfo.data, headers: tileinfo.header };
   } else if (sourceType === 'mbtiles') {
     return new Promise((resolve) => {
       source.getTile(z, x, y, (err, tileData, tileHeader) => {
