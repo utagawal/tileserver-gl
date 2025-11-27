@@ -2,7 +2,9 @@
 
 import { createCanvas, Image } from 'canvas';
 import { SphericalMercator } from '@mapbox/sphericalmercator';
+import { LRUCache } from './utils.js';
 
+const imageCache = new LRUCache(process.env.CACHE_SIZE || 100);
 const mercator = new SphericalMercator();
 
 // Constants
@@ -104,13 +106,7 @@ const safeParseNumber = (
  */
 const drawMarker = (ctx, marker, z) => {
   return new Promise((resolve, reject) => {
-    const img = new Image();
     const pixelCoords = precisePx(marker.location, z);
-
-    // Add timeout to prevent hanging on slow/failed image loads
-    const timeout = setTimeout(() => {
-      reject(new Error(`Marker image load timeout: ${marker.icon}`));
-    }, CONSTANTS.MARKER_LOAD_TIMEOUT);
 
     const getMarkerCoordinates = (imageWidth, imageHeight, scale) => {
       // Images are placed with their top-left corner at the provided location
@@ -140,9 +136,7 @@ const drawMarker = (ctx, marker, z) => {
       };
     };
 
-    const drawOnCanvas = () => {
-      clearTimeout(timeout);
-
+    const drawImageOnCanvas = (img) => {
       try {
         // Check if the image should be resized before being drawn
         const defaultScale = 1;
@@ -169,7 +163,25 @@ const drawMarker = (ctx, marker, z) => {
       }
     };
 
-    img.onload = drawOnCanvas;
+    const cachedImg = imageCache.get(marker.icon);
+    if (cachedImg) {
+      drawImageOnCanvas(cachedImg);
+      return;
+    }
+
+    const img = new Image();
+
+    // Add timeout to prevent hanging on slow/failed image loads
+    const timeout = setTimeout(() => {
+      reject(new Error(`Marker image load timeout: ${marker.icon}`));
+    }, CONSTANTS.MARKER_LOAD_TIMEOUT);
+
+    img.onload = () => {
+      clearTimeout(timeout);
+      imageCache.set(marker.icon, img);
+      drawImageOnCanvas(img);
+    };
+
     img.onerror = () => {
       clearTimeout(timeout);
       reject(new Error(`Failed to load marker image: ${marker.icon}`));
@@ -344,13 +356,13 @@ const drawPath = (ctx, path, query, pathQuery, z) => {
   // being the wider border part.
   if (finalBorder !== undefined && borderWidth > 0) {
     // Validate border color
-    if (isValidColor(finalBorder)) {
+    if (isValidColor(finalBorder) && finalBorder !== 'transparent' && finalBorder !== 'none') {
       // We need to double the desired border width and add it to the line width
       // in order to get the desired border on each side of the line.
       ctx.lineWidth = lineWidth + borderWidth * 2;
       ctx.strokeStyle = finalBorder;
       ctx.stroke();
-    } else {
+    } else if (!isValidColor(finalBorder)) {
       console.warn(`Invalid border color: ${finalBorder}, skipping border`);
     }
   }
@@ -372,14 +384,14 @@ const drawPath = (ctx, path, query, pathQuery, z) => {
   }
 
   // Validate stroke color
-  if (isValidColor(strokeColor)) {
+  if (isValidColor(strokeColor) && strokeColor !== 'transparent' && strokeColor !== 'none') {
     ctx.strokeStyle = strokeColor;
-  } else {
+    ctx.stroke();
+  } else if (!isValidColor(strokeColor)) {
     console.warn(`Invalid stroke color: ${strokeColor}, using default`);
     ctx.strokeStyle = CONSTANTS.DEFAULT_STROKE_COLOR;
+    ctx.stroke();
   }
-
-  ctx.stroke();
 };
 
 /**
