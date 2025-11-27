@@ -393,8 +393,14 @@ export const serve_data = {
         verbose,
       );
       sourceType = 'pmtiles';
-      const metadata = await getPMtilesInfo(source, inputFile);
-      Object.assign(tileJSON, metadata);
+      try {
+        const metadata = await getPMtilesInfo(source, inputFile);
+        Object.assign(tileJSON, metadata);
+      } catch (error) {
+        console.error(`[ERROR] Failed to get metadata from PMTiles file: ${inputFile}`);
+        console.error(`[ERROR] Details: ${error.message}`);
+        return;
+      }
     } else if (inputType === 'mbtiles') {
       sourceType = 'mbtiles';
       const mbw = await openMbTilesWrapper(inputFile);

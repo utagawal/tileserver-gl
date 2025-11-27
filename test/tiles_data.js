@@ -11,6 +11,10 @@ const testTile = function (prefix, z, x, y, status) {
 const prefix = 'openmaptiles';
 
 describe('Vector tiles', function () {
+  describe('remote pmtiles', function () {
+    testTile('non-existent-remote', 0, 0, 0, 404);
+  });
+
   describe('existing tiles', function () {
     testTile(prefix, 0, 0, 0, 200);
     testTile(prefix, 14, 8581, 5738, 200);
