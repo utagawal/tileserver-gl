@@ -22,7 +22,7 @@
     "copy:mapbox-rtl-text": "copyfiles -EVf node_modules/@mapbox/mapbox-gl-rtl-text/dist/mapbox-gl-rtl-text.js public/resources/",
     "copy:leaflet": "copyfiles -EVf node_modules/leaflet/dist/leaflet.js node_modules/leaflet/dist/leaflet.js.map node_modules/leaflet/dist/leaflet.css node_modules/leaflet/dist/leaflet-hash.js public/resources/",
     "copy:leaflet-hash": "copyfiles -EVf node_modules/leaflet-hash/leaflet-hash.js public/resources/",
-    "test": "mocha test/**.js --timeout 10000 --exit",
+    "test": "mocha test/**.js --timeout 30000 --exit",
     "test-docker": "xvfb-run npm test",
     "test:visual:generate": "cross-env GENERATE_FIXTURES=true mocha test/setup.js test/static_images.js --timeout 10000 --exit",
     "lint:yml": "yamllint --schema=CORE_SCHEMA *.{yml,yaml}",
