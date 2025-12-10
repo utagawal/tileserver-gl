@@ -99,9 +99,16 @@
     } else {
         var map = L.map('map', { minZoom: 1, zoomControl: false });
         new L.Control.Zoom({ position: 'topright' }).addTo(map);
+
+        var tileSizeMatch = location.search.match(/[\?\&]tileSize=([^&]+)/i);
+        var tileSize = tileSizeMatch ? parseInt(tileSizeMatch[1], 10) : 512;
+        if (tileSize !== 256 && tileSize !== 512) {
+          tileSize = 512;
+        }
+        var zoomOffset = tileSize === 256 ? 0 : -1;
         
         var tile_urls = [], tile_attribution, tile_minzoom, tile_maxzoom;
-        var url = '{{public_url}}styles/512/{{id}}.json' + keyParam;
+        var url = '{{public_url}}styles/' + tileSize + '/{{id}}.json' + keyParam;
         var req = new XMLHttpRequest();
         req.overrideMimeType("application/json");
         req.open('GET', url, true);
@@ -127,8 +134,8 @@
 
             for (tile_url in tile_urls) {
                 L.tileLayer(tile_urls[tile_url], {
-                    tileSize: 512,
-                    zoomOffset: -1,
+                    tileSize: tileSize,
+                    zoomOffset: zoomOffset,
                     minZoom: tile_minzoom,
                     maxZoom: tile_maxzoom,
                     attribution: tile_attribution
